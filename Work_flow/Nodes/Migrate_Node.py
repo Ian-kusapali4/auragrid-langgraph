@@ -3,15 +3,26 @@ import requests
 from dotenv import load_dotenv
 from Work_flow.Graph_State_Schema import GridState
 
+
 load_dotenv()
-COORDINATOR_URL = os.getenv("COORDINATOR_URL", "https://auragrid-coordinator.onrender.com")
+
+COORDINATOR_URL = os.getenv("COORDINATOR_URL")
 
 def migrate(state: GridState) -> GridState:
     """MIGRATING — Find best node and move the task"""
     print(f"🔄 MIGRATING: Finding best available node for task {state.get('task_id', 'unknown')}...")
     
-    try:
+    # 🛡️ Guardrail: Hard exit if configuration is missing
+    if not COORDINATOR_URL:
+        print("❌ Configuration Error: COORDINATOR_URL is not set in the environment.")
+        return {
+            **state,
+            "current_state": "MIGRATING",
+            "migration_status": "FAILED",
+            "narration": "Migration failed: Internal configuration error (Missing Coordinator URL)."
+        }
         
+    try:
         response = requests.post(
             f"{COORDINATOR_URL}/api/tasks/migrate",
             json={
@@ -44,7 +55,7 @@ def migrate(state: GridState) -> GridState:
                 **state,
                 "current_state": "MIGRATING",
                 "migration_status": "FAILED",
-                "narration": "Migration attempt failed. No eligible target nodes found."
+                "narration": f"Migration attempt failed. Coordinator responded with status: {response.status_code}."
             }
             
     except Exception as e:
@@ -53,5 +64,5 @@ def migrate(state: GridState) -> GridState:
             **state,
             "current_state": "MIGRATING",
             "migration_status": "FAILED",
-            "narration": f"Migration failed: {str(e)}"
+            "narration": f"Migration failed due to a network or system error: {str(e)}"
         }

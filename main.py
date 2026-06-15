@@ -1,6 +1,10 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from Work_flow.Build_Graph import auragrid_brain
 from Work_flow.Graph_State_Schema import GridState
